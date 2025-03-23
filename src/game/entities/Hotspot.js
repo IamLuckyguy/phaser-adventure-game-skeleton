@@ -381,27 +381,26 @@ export default class Hotspot {
     }
 
     getInteractionPoint() {
-        console.log(`Hotspot ${this.id} interaction point 요청`);
+        console.log(`Hotspot ${this.id} interaction point:`, this.interactionPoint);
 
-        // interactionPoint가 유효한지 확인
-        if (this.interactionPoint &&
-            typeof this.interactionPoint.x === 'number' &&
-            typeof this.interactionPoint.y === 'number' &&
-            !isNaN(this.interactionPoint.x) &&
-            !isNaN(this.interactionPoint.y)) {
+        // interactionPoint가 정의되지 않았거나 유효하지 않은 경우 기본값 제공
+        if (!this.interactionPoint ||
+            typeof this.interactionPoint.x !== 'number' ||
+            typeof this.interactionPoint.y !== 'number' ||
+            isNaN(this.interactionPoint.x) ||
+            isNaN(this.interactionPoint.y)) {
 
-            console.log(`유효한 상호작용 포인트 반환: (${this.interactionPoint.x}, ${this.interactionPoint.y})`);
-            return this.interactionPoint;
+            // 기본 상호작용 포인트 계산 - 핫스팟의 하단 중앙
+            const defaultPoint = {
+                x: this.x + (this.width ? this.width / 2 : 0),
+                y: this.y + (this.height ? this.height : 0)
+            };
+
+            console.log(`Hotspot ${this.id} 유효하지 않은 interactionPoint 감지, 기본값 사용:`, defaultPoint);
+            return defaultPoint;
         }
 
-        // 유효하지 않은 경우 핫스팟 중심 하단을 기본값으로 사용
-        const defaultPoint = {
-            x: this.x + this.width / 2,
-            y: this.y + this.height + 10 // 약간 아래쪽에 위치하도록
-        };
-
-        console.log(`유효하지 않은 상호작용 포인트, 기본값 사용: (${defaultPoint.x}, ${defaultPoint.y})`);
-        return defaultPoint;
+        return this.interactionPoint;
     }
 
     isWithinReach(player) {

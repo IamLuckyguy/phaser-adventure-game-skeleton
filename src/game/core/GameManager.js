@@ -1,8 +1,11 @@
 // src/game/core/GameManager.js
 import { saveGameData, loadGameData } from '../services/storageService';
+import Phaser from 'phaser';
 
-export default class GameManager {
+export default class GameManager extends Phaser.Events.EventEmitter {
     constructor() {
+        super(); // Phaser 이벤트 시스템 초기화
+
         this.currentScene = '';
         this.inventory = [];
         this.gameFlags = {};
@@ -11,10 +14,23 @@ export default class GameManager {
         this.itemCombinations = {};
         this.gameData = null;
         this.initialized = false;
+        this.initializing = false;
     }
 
     async init(gameDataPath = '/assets/data/game-data.json') {
-        if (this.initialized) return;
+        // 이미 초기화 중이거나 완료된 경우 중복 초기화 방지
+        if (this.initialized || this.initializing) {
+            if (this.initialized) {
+                console.log('GameManager: 이미 초기화 완료됨');
+                this.emit('init-complete', this);
+            } else {
+                console.log('GameManager: 초기화 진행 중...');
+            }
+            return this.initialized;
+        }
+
+        this.initializing = true;
+        console.log('GameManager: 초기화 시작');
 
         try {
             // 게임 데이터 로드 (아이템, 조합법 등)
@@ -24,6 +40,7 @@ export default class GameManager {
             }
 
             this.gameData = await response.json();
+            console.log('GameManager: 게임 데이터 로드 완료');
 
             // 아이템 데이터베이스 설정
             if (this.gameData.items) {
@@ -52,13 +69,42 @@ export default class GameManager {
             }
 
             this.initialized = true;
-            console.log('게임 매니저 초기화 완료:', this.gameData);
+            this.initializing = false;
+
+            // 초기화 완료 이벤트 발생
+            this.emit('init-complete', this);
+            console.log('GameManager: 초기화 완료');
+            return true;
         } catch (error) {
-            console.error('게임 매니저 초기화 실패:', error);
+            console.error('GameManager: 초기화 실패:', error);
             // 기본 설정으로 대체
             this.resetGameState();
             this.initialized = true;
+            this.initializing = false;
+
+            // 초기화 실패 이벤트 발생
+            this.emit('init-error', error);
+            return false;
         }
+    }
+
+    // 초기화 상태 확인 및 대기 메서드
+    async waitForInit() {
+        // 이미 초기화되었으면 바로 반환
+        if (this.initialized) {
+            return true;
+        }
+
+        // 아직 초기화 시작되지 않았으면 시작
+        if (!this.initializing) {
+            return this.init();
+        }
+
+        // 초기화 중이면 완료될 때까지 대기
+        return new Promise((resolve) => {
+            this.once('init-complete', () => resolve(true));
+            this.once('init-error', () => resolve(false));
+        });
     }
 
     resetGameState() {
@@ -76,14 +122,17 @@ export default class GameManager {
         }
     }
 
-    loadSavedGameloadSavedGame(savedData) {
-        // 저장된 게임 데이터 로드
+    loadSavedGame(savedData) {
+        // 저장된 게임 데이터 로드 (함수명 오타 수정)
         this.currentScene = savedData.currentScene || this.gameData?.startingScene || 'room1';
         this.inventory = savedData.inventory || [];
         this.gameFlags = savedData.gameFlags || {};
         this.visitedScenes = new Set(savedData.visitedScenes || []);
 
-        console.log('저장된 게임 로드됨:', savedData);
+        console.log('GameManager: 저장된 게임 로드됨:', savedData);
+
+        // 저장 게임 로드 이벤트 발생
+        this.emit('game-loaded', savedData);
     }
 
     saveGameState() {
@@ -101,13 +150,21 @@ export default class GameManager {
             saveGameData(saveData);
         }
 
-        console.log('게임 저장됨:', saveData);
+        console.log('GameManager: 게임 저장됨:', saveData);
+
+        // 게임 저장 이벤트 발생
+        this.emit('game-saved', saveData);
+
         return saveData;
     }
 
     setCurrentScene(sceneKey) {
+        const previousScene = this.currentScene;
         this.currentScene = sceneKey;
         this.visitedScenes.add(sceneKey);
+
+        // 씬 변경 이벤트 발생
+        this.emit('scene-changed', { previous: previousScene, current: sceneKey });
     }
 
     getSavedState(sceneKey) {
@@ -125,7 +182,10 @@ export default class GameManager {
     collectItem(itemId) {
         if (!this.inventory.includes(itemId)) {
             this.inventory.push(itemId);
-            console.log(`아이템 획득: ${itemId}`);
+            console.log(`GameManager: 아이템 획득: ${itemId}`);
+
+            // 아이템 획득 이벤트 발생
+            this.emit('item-collected', itemId);
             return true;
         }
         return false;
@@ -135,7 +195,10 @@ export default class GameManager {
         const index = this.inventory.indexOf(itemId);
         if (index !== -1) {
             this.inventory.splice(index, 1);
-            console.log(`아이템 제거: ${itemId}`);
+            console.log(`GameManager: 아이템 제거: ${itemId}`);
+
+            // 아이템 제거 이벤트 발생
+            this.emit('item-removed', itemId);
             return true;
         }
         return false;
@@ -164,7 +227,7 @@ export default class GameManager {
 
         if (resultItemId) {
             // 성공적인 조합
-            console.log(`아이템 조합 성공: ${itemId1} + ${itemId2} = ${resultItemId}`);
+            console.log(`GameManager: 아이템 조합 성공: ${itemId1} + ${itemId2} = ${resultItemId}`);
 
             // 기존 아이템 제거
             this.removeItem(itemId1);
@@ -173,11 +236,14 @@ export default class GameManager {
             // 새 아이템 추가
             this.collectItem(resultItemId);
 
+            // 아이템 조합 이벤트 발생
+            this.emit('items-combined', { item1: itemId1, item2: itemId2, result: resultItemId });
+
             return this.getItemData(resultItemId);
         }
 
         // 조합 실패
-        console.log(`아이템 조합 실패: ${itemId1} + ${itemId2}`);
+        console.log(`GameManager: 아이템 조합 실패: ${itemId1} + ${itemId2}`);
         return null;
     }
 
@@ -187,7 +253,15 @@ export default class GameManager {
     }
 
     setFlag(flagName, value = true) {
+        const previousValue = this.gameFlags[flagName];
         this.gameFlags[flagName] = value;
+
+        // 플래그 변경 이벤트 발생
+        this.emit('flag-changed', {
+            flag: flagName,
+            value: value,
+            previousValue: previousValue
+        });
     }
 
     getFlag(flagName) {
