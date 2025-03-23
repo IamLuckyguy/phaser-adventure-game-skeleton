@@ -381,22 +381,57 @@ export default class Hotspot {
     }
 
     getInteractionPoint() {
-        console.log(`Hotspot ${this.id} interaction point:`, this.interactionPoint);
-        // interactionPoint가 정의되지 않은 경우 기본값 제공
-        return this.interactionPoint || { x: this.x + this.width / 2, y: this.y + this.height };
+        console.log(`Hotspot ${this.id} interaction point 요청`);
+
+        // interactionPoint가 유효한지 확인
+        if (this.interactionPoint &&
+            typeof this.interactionPoint.x === 'number' &&
+            typeof this.interactionPoint.y === 'number' &&
+            !isNaN(this.interactionPoint.x) &&
+            !isNaN(this.interactionPoint.y)) {
+
+            console.log(`유효한 상호작용 포인트 반환: (${this.interactionPoint.x}, ${this.interactionPoint.y})`);
+            return this.interactionPoint;
+        }
+
+        // 유효하지 않은 경우 핫스팟 중심 하단을 기본값으로 사용
+        const defaultPoint = {
+            x: this.x + this.width / 2,
+            y: this.y + this.height + 10 // 약간 아래쪽에 위치하도록
+        };
+
+        console.log(`유효하지 않은 상호작용 포인트, 기본값 사용: (${defaultPoint.x}, ${defaultPoint.y})`);
+        return defaultPoint;
     }
 
     isWithinReach(player) {
         // 플레이어가 핫스팟에 닿을 수 있는지 확인
-        // player.sprite 객체의 x,y 또는 player의 getPosition() 메서드 사용
+        if (!player) {
+            console.warn(`Hotspot ${this.id}: 플레이어 객체가 없음`);
+            return false;
+        }
+
+        // player 객체의 형태 확인
         const playerPos = player.getPosition ? player.getPosition() : player;
 
+        if (typeof playerPos.x !== 'number' || typeof playerPos.y !== 'number') {
+            console.warn(`Hotspot ${this.id}: 유효하지 않은 플레이어 위치`, playerPos);
+            return false;
+        }
+
+        // 상호작용 지점 가져오기
+        const interactionPoint = this.getInteractionPoint();
+
+        // 거리 계산
         const distance = Phaser.Math.Distance.Between(
             playerPos.x,
             playerPos.y,
-            this.interactionPoint.x,
-            this.interactionPoint.y
+            interactionPoint.x,
+            interactionPoint.y
         );
+
+        // 디버깅을 위한 로그
+        console.log(`Hotspot ${this.id} 거리 체크: 플레이어 (${playerPos.x}, ${playerPos.y}), 상호작용 지점 (${interactionPoint.x}, ${interactionPoint.y}), 거리: ${distance}, 필요 거리: ${this.reachDistance}`);
 
         return distance <= this.reachDistance;
     }

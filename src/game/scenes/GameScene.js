@@ -385,29 +385,61 @@ export default class GameScene extends Phaser.Scene {
         return this.items.find(item => item.containsPoint(x, y));
     }
 
-    // GameScene.js의 interactWithHotspot 메서드 수정
+    /**
+     * 핫스팟과 상호작용합니다.
+     * @param {Hotspot} hotspot - 상호작용할 핫스팟 객체
+     */
     interactWithHotspot(hotspot) {
         // 핫스팟과 상호작용
-        if (!hotspot.isEnabled()) return;
+        if (!hotspot || !hotspot.isEnabled()) {
+            console.log("핫스팟이 비활성화 상태거나 유효하지 않음");
+            return;
+        }
 
-        console.log("Interacting with hotspot:", hotspot.id);
+        console.log(`핫스팟 상호작용 시작: ${hotspot.id}, 위치: (${hotspot.x}, ${hotspot.y}), 크기: ${hotspot.width}x${hotspot.height}`);
 
         // 플레이어가 핫스팟에 접근할 수 있는지 확인
-        if (this.player && !hotspot.isWithinReach(this.player)) {
-            const interactionPoint = hotspot.getInteractionPoint();
-            console.log("Moving player to interaction point:", interactionPoint);
-
-            // 이 부분이 중요 - 플레이어 이동 전에 좌표 유효성 확인
-            if (!interactionPoint || typeof interactionPoint.x !== 'number' || typeof interactionPoint.y !== 'number') {
-                console.error("Invalid interaction point:", interactionPoint);
-                hotspot.interact(this); // 유효하지 않은 경우 그냥 상호작용 진행
+        if (this.player) {
+            // 이미 충분히 가까이 있는 경우 바로 상호작용
+            if (hotspot.isWithinReach(this.player)) {
+                console.log("플레이어가 이미 충분히 가까이 있음, 바로 상호작용");
+                hotspot.interact(this);
                 return;
             }
 
+            // 상호작용 지점 가져오기
+            let interactionPoint = hotspot.getInteractionPoint();
+
+            // 맵 경계 체크 - 화면 밖으로 나가지 않도록
+            const bounds = {
+                width: this.cameras.main.width,
+                height: this.cameras.main.height
+            };
+
+            // 상호작용 지점이 맵 경계 내에 있는지 확인하고 조정
+            if (interactionPoint.x < 10) interactionPoint.x = 10;
+            if (interactionPoint.y < 10) interactionPoint.y = 10;
+            if (interactionPoint.x > bounds.width - 10) interactionPoint.x = bounds.width - 10;
+            if (interactionPoint.y > bounds.height - 10) interactionPoint.y = bounds.height - 10;
+
+            console.log(`플레이어 이동 시작: 대상 위치 (${interactionPoint.x}, ${interactionPoint.y})`);
+
+            // 게임 상태 디버깅
+            console.log(`현재 게임 상태: ${this.gameState}`);
+            console.log(`플레이어 현재 위치: (${this.player.x}, ${this.player.y})`);
+
+            // 플레이어 이동 후 상호작용
             this.player.moveTo(interactionPoint, () => {
-                hotspot.interact(this);
+                console.log(`플레이어 이동 완료: 현재 위치 (${this.player.x}, ${this.player.y})`);
+                if (hotspot.isEnabled()) {  // 이동 완료 후 다시 활성화 상태 확인
+                    hotspot.interact(this);
+                } else {
+                    console.log("이동 후 핫스팟이 비활성화 상태");
+                }
             });
         } else {
+            // 플레이어가 없는 경우 직접 상호작용
+            console.log("플레이어 객체가 없음, 직접 상호작용");
             hotspot.interact(this);
         }
     }

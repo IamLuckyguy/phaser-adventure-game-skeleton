@@ -14,6 +14,7 @@ export default class Player {
         this.targetPosition = null;
         this.onMoveComplete = null;
         this.facingRight = true;
+        this.moveTween = null;
 
         // 경로 찾기 지점
         this.path = [];
@@ -51,35 +52,13 @@ export default class Player {
     }
 
     setupAnimations(config) {
-        // 플레이어 애니메이션 설정
+        // 플레이어 애니메이션 확인 및 설정
         const anims = this.scene.anims;
 
-        // 애니메이션이 이미 정의되어 있는지 확인
-        if (!anims.exists('player_idle')) {
-            anims.create({
-                key: 'player_idle',
-                frames: anims.generateFrameNumbers('player_sprite', { start: 0, end: 3 }),
-                frameRate: 8,
-                repeat: -1
-            });
-        }
-
-        if (!anims.exists('player_walk')) {
-            anims.create({
-                key: 'player_walk',
-                frames: anims.generateFrameNumbers('player_sprite', { start: 4, end: 11 }),
-                frameRate: 12,
-                repeat: -1
-            });
-        }
-
-        if (!anims.exists('player_run')) {
-            anims.create({
-                key: 'player_run',
-                frames: anims.generateFrameNumbers('player_sprite', { start: 12, end: 15 }),
-                frameRate: 15,
-                repeat: -1
-            });
+        if (!anims.exists('player_idle') ||
+            !anims.exists('player_walk') ||
+            !anims.exists('player_run')) {
+            console.warn('필요한 애니메이션이 없습니다. PreloadScene이 올바르게 실행되었는지 확인하세요.');
         }
 
         // 초기 애니메이션 설정
@@ -87,7 +66,7 @@ export default class Player {
     }
 
     update(time, delta) {
-        if (this.isMoving) {
+        if (this.isMoving && !this.moveTween) {
             this.updateMovement(delta);
         }
 
@@ -117,6 +96,8 @@ export default class Player {
     }
 
     moveDirectlyToTarget(delta) {
+        if (!this.targetPosition) return;
+
         const targetX = this.targetPosition.x;
         const targetY = this.targetPosition.y;
 
@@ -156,13 +137,7 @@ export default class Player {
         this.sprite.y = this.y;
 
         // 방향에 따라 플립
-        if (directionX < 0 && this.facingRight) {
-            this.sprite.flipX = true;
-            this.facingRight = false;
-        } else if (directionX > 0 && !this.facingRight) {
-            this.sprite.flipX = false;
-            this.facingRight = true;
-        }
+        this.updateDirection(directionX);
     }
 
     followPath(delta) {
@@ -215,10 +190,15 @@ export default class Player {
         this.sprite.y = this.y;
 
         // 방향에 따라 플립
-        if (directionX < 0 && this.facingRight) {
+        this.updateDirection(directionX);
+    }
+
+    updateDirection(directionX) {
+        // 방향에 따라 캐릭터 플립
+        if (directionX < -0.1 && this.facingRight) {
             this.sprite.flipX = true;
             this.facingRight = false;
-        } else if (directionX > 0 && !this.facingRight) {
+        } else if (directionX > 0.1 && !this.facingRight) {
             this.sprite.flipX = false;
             this.facingRight = true;
         }
@@ -230,6 +210,7 @@ export default class Player {
         // 이동 완료
         this.isMoving = false;
         this.isRunning = false;
+        this.targetPosition = null;
         this.sprite.play('player_idle');
 
         // 콜백 실행
@@ -240,83 +221,152 @@ export default class Player {
         }
     }
 
-    // Player.js의 moveTo 메서드 수정
+    /**
+     * 플레이어를 특정 위치로 이동시킵니다.
+     * @param {number|object} x - x 좌표 또는 대상 위치 객체 ({x, y})
+     * @param {number|function} y - y 좌표 또는 이동 완료 후 콜백
+     * @param {function} onComplete - 이동 완료 후 콜백
+     */
     moveTo(x, y, onComplete = null) {
-        // 현재 위치
-        const startX = this.sprite.x;
-        const startY = this.sprite.y;
+        // 진행 중인 트윈이 있다면 중지
+        if (this.moveTween) {
+            this.moveTween.stop();
+            this.moveTween = null;
+        }
 
-        // 목적지 - 여기가 문제일 수 있음
-        let targetX, targetY;
+        // 현재 위치
+        const startX = this.x;
+        const startY = this.y;
+
+        // 매개변수 처리
+        let targetX, targetY, callback;
 
         if (typeof x === 'object') {
-            // x가 객체인 경우 (예: interactionPoint)
-            console.log("Moving to object:", x); // 디버깅용
-            targetX = x.x || 0; // x가 undefined인 경우를 대비
-            targetY = x.y || 0; // y가 undefined인 경우를 대비
+            // x가 객체인 경우 (예: {x: 100, y: 200})
+            if (!x || (typeof x.x !== 'number' || typeof x.y !== 'number')) {
+                console.error("유효하지 않은 이동 좌표:", x);
+                if (typeof y === 'function') {
+                    y(); // y가 콜백인 경우 실행
+                } else if (typeof onComplete === 'function') {
+                    onComplete();
+                }
+                return;
+            }
+
+            targetX = x.x;
+            targetY = x.y;
+            callback = typeof y === 'function' ? y : onComplete;
         } else {
-            // x, y가 직접 좌표값으로 주어진 경우
+            // x, y가 좌표값인 경우
             targetX = x;
             targetY = y;
+            callback = onComplete;
         }
 
-        // 애니메이션 변경
-        this.playAnimation('player_walk');
-
-        // 캐릭터 방향 설정 (좌/우)
-        if (targetX < startX) {
-            this.sprite.setFlipX(true);  // 왼쪽을 보도록
-        } else {
-            this.sprite.setFlipX(false); // 오른쪽을 보도록
-        }
-
-        // 트윈으로 이동 (수정된 버전)
-        this.isMoving = true;
-        this.targetPosition = { x: targetX, y: targetY };
-
-        // 스프라이트가 제대로 설정되어 있는지 확인
-        if (!this.sprite) {
-            console.error("Player sprite is not defined");
-            if (onComplete) onComplete();
+        // targetX, targetY가 숫자인지 확인
+        if (typeof targetX !== 'number' || typeof targetY !== 'number') {
+            console.error("유효하지 않은 이동 좌표:", targetX, targetY);
+            if (callback) callback();
             return;
         }
 
-        this.scene.tweens.add({
+        // 이동 거리가 없는 경우
+        if (startX === targetX && startY === targetY) {
+            if (callback) callback();
+            return;
+        }
+
+        // 이동 상태 설정
+        this.isMoving = true;
+        this.targetPosition = {x: targetX, y: targetY};
+        this.onMoveComplete = callback;
+
+        // 애니메이션 설정
+        this.playAnimation('player_walk');
+
+        // 방향 설정
+        this.updateDirection(targetX - startX);
+
+        // 트윈 애니메이션으로 이동
+        this.moveTween = this.scene.tweens.add({
             targets: this.sprite,
             x: targetX,
             y: targetY,
             duration: this.calculateMoveDuration(startX, startY, targetX, targetY),
+            ease: 'Linear',
             onUpdate: () => {
                 // 스프라이트 위치에 맞게 플레이어 좌표 업데이트
                 this.x = this.sprite.x;
                 this.y = this.sprite.y;
             },
             onComplete: () => {
-                // 이동 완료 후 대기 애니메이션
-                this.playAnimation('player_idle');
-                this.isMoving = false;
-
-                // 콜백 실행
-                if (onComplete) onComplete();
+                this.moveTween = null;
+                this.arriveAtTarget();
             }
         });
     }
 
     runTo(x, y, onComplete = null) {
-        // 달리기 (moveTo와 유사하지만 빠른 속도)
-        this.targetPosition = { x, y };
+        // 진행 중인 트윈이 있다면 중지
+        if (this.moveTween) {
+            this.moveTween.stop();
+            this.moveTween = null;
+        }
+
+        // 매개변수 처리
+        let targetX, targetY, callback;
+
+        if (typeof x === 'object') {
+            if (!x || (typeof x.x !== 'number' || typeof x.y !== 'number')) {
+                console.error("유효하지 않은 이동 좌표:", x);
+                if (typeof y === 'function') {
+                    y();
+                } else if (typeof onComplete === 'function') {
+                    onComplete();
+                }
+                return;
+            }
+
+            targetX = x.x;
+            targetY = x.y;
+            callback = typeof y === 'function' ? y : onComplete;
+        } else {
+            targetX = x;
+            targetY = y;
+            callback = onComplete;
+        }
+
+        // 이동 상태 설정
         this.isMoving = true;
         this.isRunning = true;
-        this.onMoveComplete = onComplete;
+        this.targetPosition = {x: targetX, y: targetY};
+        this.onMoveComplete = callback;
 
         // 달리기 애니메이션
-        this.sprite.play('player_run');
+        this.playAnimation('player_run');
 
         // 사운드 효과 (선택적)
-        // this.scene.sound.play('run_footsteps', { volume: 0.4, loop: true });
+        this.tryPlaySound('run_footsteps', {volume: 0.4, loop: true});
 
-        // 경로 찾기 사용
-        this.findPath(x, y);
+        // 방향 설정
+        this.updateDirection(targetX - this.x);
+
+        // 트윈 애니메이션으로 이동 (빠른 속도)
+        this.moveTween = this.scene.tweens.add({
+            targets: this.sprite,
+            x: targetX,
+            y: targetY,
+            duration: this.calculateMoveDuration(this.x, this.y, targetX, targetY, true),
+            ease: 'Linear',
+            onUpdate: () => {
+                this.x = this.sprite.x;
+                this.y = this.sprite.y;
+            },
+            onComplete: () => {
+                this.moveTween = null;
+                this.arriveAtTarget();
+            }
+        });
     }
 
     findPath(targetX, targetY) {
@@ -336,11 +386,18 @@ export default class Player {
         this.targetPosition = null;
         this.path = [];
         this.currentPathIndex = 0;
+
+        // 진행 중인 트윈이 있다면 중지
+        if (this.moveTween) {
+            this.moveTween.stop();
+            this.moveTween = null;
+        }
+
         this.sprite.play('player_idle');
 
         // 사운드 중지 (필요시)
-        // this.scene.sound.stopByKey('footsteps');
-        // this.scene.sound.stopByKey('run_footsteps');
+        this.tryStopSound('footsteps');
+        this.tryStopSound('run_footsteps');
     }
 
     faceDirection(direction) {
@@ -355,15 +412,26 @@ export default class Player {
     }
 
     playAnimation(animKey, completeCallback = null) {
+        // 애니메이션 존재 확인
+        if (!this.scene.anims.exists(animKey)) {
+            console.warn(`애니메이션 ${animKey}이(가) 존재하지 않습니다.`);
+            return;
+        }
+
+        // 이미 같은 애니메이션이 재생 중이면 처리 스킵
+        if (this.sprite.anims.currentAnim && this.sprite.anims.currentAnim.key === animKey) {
+            return;
+        }
+
         // 특정 애니메이션 재생
         this.sprite.play(animKey);
 
         if (completeCallback) {
-            this.sprite.on('animationcomplete', () => {
+            this.sprite.once('animationcomplete', () => {
                 completeCallback();
                 // 기본 애니메이션으로 복귀
                 this.sprite.play('player_idle');
-            }, this);
+            });
         }
     }
 
@@ -371,6 +439,7 @@ export default class Player {
         // 플레이어 표시/숨김
         this.sprite.visible = visible;
         if (this.shadow) this.shadow.visible = visible;
+        if (this.hitArea) this.hitArea.visible = visible && IS_DEV;
     }
 
     teleport(x, y) {
@@ -393,24 +462,58 @@ export default class Player {
 
     getPosition() {
         // 현재 위치 반환
-        return { x: this.x, y: this.y };
+        return {x: this.x, y: this.y};
     }
 
-    calculateMoveDuration(startX, startY, targetX, targetY) {
+    calculateMoveDuration(startX, startY, targetX, targetY, isRunning = false) {
         // 시작점과 목표점 사이의 거리 계산
         const dx = targetX - startX;
         const dy = targetY - startY;
         const distance = Math.sqrt(dx * dx + dy * dy);
 
         // 속도에 따른 이동 시간 계산 (거리 / 속도)
-        const speed = this.isRunning ? this.runSpeed : this.speed;
+        const speed = isRunning ? this.runSpeed : this.speed;
 
         // 최소 지속 시간 100ms, 최대 5000ms
         return Math.min(Math.max(distance / (speed / 1000), 100), 5000);
     }
 
+    tryPlaySound(key, config = {}) {
+        // 안전하게 사운드 재생 (사운드가 없어도 오류 방지)
+        try {
+            if (this.scene.sound && this.scene.sound.get(key)) {
+                return this.scene.sound.play(key, config);
+            } else if (this.scene.sound) {
+                return this.scene.sound.add(key, config).play();
+            }
+        } catch (error) {
+            console.warn(`사운드 ${key} 재생 실패:`, error);
+        }
+        return null;
+    }
+
+    tryStopSound(key) {
+        // 안전하게 사운드 중지
+        try {
+            if (this.scene.sound && this.scene.sound.get(key)) {
+                this.scene.sound.get(key).stop();
+                return true;
+            }
+        } catch (error) {
+            console.warn(`사운드 ${key} 중지 실패:`, error);
+        }
+        return false;
+    }
+
     destroy() {
         // 리소스 정리
+        this.stopMoving();
+
+        if (this.moveTween) {
+            this.moveTween.stop();
+            this.moveTween = null;
+        }
+
         if (this.sprite) this.sprite.destroy();
         if (this.shadow) this.shadow.destroy();
         if (this.hitArea) this.hitArea.destroy();
