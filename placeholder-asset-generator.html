@@ -1,0 +1,620 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Phaser 어드벤처 게임 에셋 생성기</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        button {
+            padding: 10px 20px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            margin-bottom: 20px;
+            font-size: 16px;
+        }
+        button:hover {
+            background-color: #45a049;
+        }
+        canvas {
+            border: 1px solid #ddd;
+            margin-bottom: 20px;
+            display: block;
+        }
+        .instructions {
+            background-color: #f5f5f5;
+            padding: 15px;
+            border-radius: 5px;
+            margin-bottom: 20px;
+        }
+        .asset-group {
+            margin-bottom: 40px;
+            border-bottom: 1px solid #eee;
+            padding-bottom: 20px;
+        }
+        h3 {
+            background-color: #eee;
+            padding: 8px;
+            border-radius: 4px;
+        }
+        .save-path {
+            font-family: monospace;
+            background-color: #f8f8f8;
+            padding: 3px 6px;
+            border-radius: 3px;
+            font-size: 14px;
+        }
+    </style>
+</head>
+<body>
+<h1>Phaser 어드벤처 게임 에셋 생성기</h1>
+
+<div class="instructions">
+    <h2>사용 방법</h2>
+    <ol>
+        <li>아래 '에셋 생성' 버튼을 클릭하세요.</li>
+        <li>생성된 각 이미지를 우클릭하여 '이미지를 다른 이름으로 저장'을 선택하세요.</li>
+        <li>이미지를 해당 폴더에 저장하세요 (각 이미지 아래에 경로가 표시됩니다).</li>
+    </ol>
+    <p><strong>참고:</strong> 이 도구는 게임 개발을 위한 임시 에셋을 생성합니다. 실제 게임에서는 디자인된 에셋으로 교체하면 됩니다.</p>
+</div>
+
+<button id="generateAssets">에셋 생성</button>
+
+<div id="assetsContainer"></div>
+
+<script>
+    // 캔버스 생성 함수
+    function createCanvas(id, width, height, savePath) {
+        const container = document.getElementById('assetsContainer');
+
+        const canvasWrapper = document.createElement('div');
+        canvasWrapper.className = 'canvas-wrapper';
+
+        const heading = document.createElement('h3');
+        heading.textContent = id;
+        canvasWrapper.appendChild(heading);
+
+        const canvas = document.createElement('canvas');
+        canvas.id = id;
+        canvas.width = width;
+        canvas.height = height;
+        canvasWrapper.appendChild(canvas);
+
+        const saveInfo = document.createElement('p');
+        saveInfo.innerHTML = `저장 경로: <span class="save-path">${savePath}</span>`;
+        canvasWrapper.appendChild(saveInfo);
+
+        container.appendChild(canvasWrapper);
+
+        return canvas;
+    }
+
+    // 색상 헥사값 생성 함수
+    function getRandomColor() {
+        const letters = '0123456789ABCDEF';
+        let color = '#';
+        for (let i = 0; i < 6; i++) {
+            color += letters[Math.floor(Math.random() * 16)];
+        }
+        return color;
+    }
+
+    // 에셋 생성 함수
+    function generateAssets() {
+        const assetsContainer = document.getElementById('assetsContainer');
+        assetsContainer.innerHTML = '';
+
+        // 배경 그룹 생성
+        const backgroundsGroup = document.createElement('div');
+        backgroundsGroup.className = 'asset-group';
+        backgroundsGroup.innerHTML = '<h2>배경 이미지</h2>';
+        assetsContainer.appendChild(backgroundsGroup);
+
+        // 배경 이미지 - Room 1 (1280x720)
+        const bgRoom1 = createCanvas('bg_room1', 1280, 720, '/public/assets/images/backgrounds/bg_room1.png');
+        backgroundsGroup.appendChild(bgRoom1.parentElement);
+        const bgCtx1 = bgRoom1.getContext('2d');
+
+        // 배경 색
+        bgCtx1.fillStyle = '#2C3E50';
+        bgCtx1.fillRect(0, 0, 1280, 720);
+
+        // 바닥
+        bgCtx1.fillStyle = '#34495E';
+        bgCtx1.fillRect(0, 600, 1280, 120);
+
+        // 창문
+        bgCtx1.fillStyle = '#1A2530';
+        bgCtx1.fillRect(400, 200, 200, 150);
+        bgCtx1.strokeStyle = '#7F8C8D';
+        bgCtx1.lineWidth = 10;
+        bgCtx1.strokeRect(400, 200, 200, 150);
+
+        // 창문 십자
+        bgCtx1.beginPath();
+        bgCtx1.moveTo(500, 200);
+        bgCtx1.lineTo(500, 350);
+        bgCtx1.moveTo(400, 275);
+        bgCtx1.lineTo(600, 275);
+        bgCtx1.strokeStyle = '#7F8C8D';
+        bgCtx1.lineWidth = 5;
+        bgCtx1.stroke();
+
+        // 문
+        bgCtx1.fillStyle = '#7F8C8D';
+        bgCtx1.fillRect(900, 400, 120, 200);
+        bgCtx1.strokeStyle = '#95A5A6';
+        bgCtx1.lineWidth = 5;
+        bgCtx1.strokeRect(900, 400, 120, 200);
+
+        // 문 손잡이
+        bgCtx1.fillStyle = '#ECF0F1';
+        bgCtx1.beginPath();
+        bgCtx1.arc(930, 500, 12, 0, Math.PI * 2);
+        bgCtx1.fill();
+
+        // 책장
+        bgCtx1.fillStyle = '#795548';
+        bgCtx1.fillRect(200, 400, 200, 200);
+
+        // 책장 선반
+        bgCtx1.fillStyle = '#5D4037';
+        bgCtx1.fillRect(210, 440, 180, 30);
+        bgCtx1.fillRect(210, 480, 180, 30);
+        bgCtx1.fillRect(210, 520, 180, 30);
+        bgCtx1.fillRect(210, 560, 180, 30);
+
+        // 몇 권의 책 그리기
+        const bookColors = ['#E74C3C', '#3498DB', '#2ECC71', '#F1C40F', '#9B59B6'];
+        for (let i = 0; i < 4; i++) {
+            for (let j = 0; j < 4; j++) {
+                const x = 220 + (j * 40);
+                const y = 410 + (i * 40);
+                bgCtx1.fillStyle = bookColors[Math.floor(Math.random() * bookColors.length)];
+                bgCtx1.fillRect(x, y, 30, 30);
+                bgCtx1.strokeStyle = '#34495E';
+                bgCtx1.lineWidth = 1; // 수정된 부분: a -> 1
+                bgCtx1.strokeRect(x, y, 30, 30);
+            }
+        }
+
+        // 침대
+        bgCtx1.fillStyle = '#8E44AD';
+        bgCtx1.fillRect(600, 550, 250, 50);
+        bgCtx1.fillStyle = '#9B59B6';
+        bgCtx1.fillRect(600, 500, 250, 50);
+        bgCtx1.fillStyle = '#7D3C98';
+        bgCtx1.fillRect(600, 450, 80, 50);
+
+        // 제목
+        bgCtx1.fillStyle = '#FFFFFF';
+        bgCtx1.font = 'bold 32px Arial';
+        bgCtx1.textAlign = 'center';
+        bgCtx1.fillText('방 1 - 잠긴 방', 640, 50);
+
+        // 배경 이미지 - Room 2 (1280x720)
+        const bgRoom2 = createCanvas('bg_room2', 1280, 720, '/public/assets/images/backgrounds/bg_room2.png');
+        backgroundsGroup.appendChild(bgRoom2.parentElement);
+        const bgCtx2 = bgRoom2.getContext('2d');
+
+        // 배경 색
+        bgCtx2.fillStyle = '#34495E';
+        bgCtx2.fillRect(0, 0, 1280, 720);
+
+        // 바닥
+        bgCtx2.fillStyle = '#2C3E50';
+        bgCtx2.fillRect(0, 600, 1280, 120);
+
+        // 벽 무늬
+        for (let x = 0; x < 1280; x += 80) {
+            bgCtx2.strokeStyle = '#2C3E50';
+            bgCtx2.lineWidth = 2;
+            bgCtx2.beginPath();
+            bgCtx2.moveTo(x, 0);
+            bgCtx2.lineTo(x, 600);
+            bgCtx2.stroke();
+        }
+
+        // 문 (왼쪽 - 이전 방으로)
+        bgCtx2.fillStyle = '#7F8C8D';
+        bgCtx2.fillRect(100, 400, 120, 200);
+        bgCtx2.strokeStyle = '#95A5A6';
+        bgCtx2.lineWidth = 5;
+        bgCtx2.strokeRect(100, 400, 120, 200);
+
+        // 문 손잡이
+        bgCtx2.fillStyle = '#ECF0F1';
+        bgCtx2.beginPath();
+        bgCtx2.arc(200, 500, 12, 0, Math.PI * 2);
+        bgCtx2.fill();
+
+        // 유리 진열장
+        bgCtx2.fillStyle = 'rgba(174, 214, 241, 0.5)';
+        bgCtx2.fillRect(500, 400, 150, 200);
+        bgCtx2.strokeStyle = '#95A5A6';
+        bgCtx2.lineWidth = 3;
+        bgCtx2.strokeRect(500, 400, 150, 200);
+
+        // 진열장 윤곽
+        bgCtx2.fillStyle = '#7F8C8D';
+        bgCtx2.fillRect(495, 390, 160, 10);
+        bgCtx2.fillRect(495, 600, 160, 10);
+        bgCtx2.fillRect(495, 400, 10, 200);
+        bgCtx2.fillRect(645, 400, 10, 200);
+
+        // 진열장 선반
+        bgCtx2.fillStyle = '#95A5A6';
+        bgCtx2.fillRect(500, 470, 150, 5);
+        bgCtx2.fillRect(500, 540, 150, 5);
+
+        // 진열장 내 망치
+        bgCtx2.fillStyle = '#7F8C8D';
+        bgCtx2.fillRect(550, 500, 50, 15);
+        bgCtx2.fillStyle = '#5D6D7E';
+        bgCtx2.fillRect(555, 485, 15, 20);
+
+        // 문 (오른쪽 - 잠긴 문)
+        bgCtx2.fillStyle = '#5D6D7E';
+        bgCtx2.fillRect(900, 400, 120, 200);
+        bgCtx2.strokeStyle = '#95A5A6';
+        bgCtx2.lineWidth = 5;
+        bgCtx2.strokeRect(900, 400, 120, 200);
+
+        // 문 손잡이
+        bgCtx2.fillStyle = '#ECF0F1';
+        bgCtx2.beginPath();
+        bgCtx2.arc(930, 500, 12, 0, Math.PI * 2);
+        bgCtx2.fill();
+
+        // 자물쇠
+        bgCtx2.fillStyle = '#F1C40F';
+        bgCtx2.fillRect(920, 540, 30, 20);
+        bgCtx2.fillRect(930, 530, 10, 10);
+
+        // 제목
+        bgCtx2.fillStyle = '#FFFFFF';
+        bgCtx2.font = 'bold 32px Arial';
+        bgCtx2.textAlign = 'center';
+        bgCtx2.fillText('방 2 - 복도', 640, 50);
+
+        // 아이템 그룹 생성
+        const itemsGroup = document.createElement('div');
+        itemsGroup.className = 'asset-group';
+        itemsGroup.innerHTML = '<h2>아이템 아이콘</h2>';
+        assetsContainer.appendChild(itemsGroup);
+
+        // 아이콘 - 열쇠 (32x32)
+        const iconKey = createCanvas('icon_key', 32, 32, '/public/assets/images/items/icon_key.png');
+        itemsGroup.appendChild(iconKey.parentElement);
+        const keyCtx = iconKey.getContext('2d');
+
+        // 배경
+        keyCtx.fillStyle = '#F39C12';
+        keyCtx.fillRect(0, 0, 32, 32);
+
+        // 열쇠 그리기
+        keyCtx.fillStyle = '#ECF0F1';
+        keyCtx.beginPath();
+        keyCtx.arc(13, 13, 5, 0, Math.PI * 2);
+        keyCtx.fill();
+        keyCtx.strokeStyle = '#BDC3C7';
+        keyCtx.lineWidth = 1;
+        keyCtx.stroke();
+
+        keyCtx.fillStyle = '#ECF0F1';
+        keyCtx.fillRect(13, 13, 10, 3);
+        keyCtx.fillRect(18, 16, 3, 3);
+        keyCtx.fillRect(24, 13, 1, 6);
+
+        // 아이콘 - 쪽지 (32x32)
+        const iconNote = createCanvas('icon_note', 32, 32, '/public/assets/images/items/icon_note.png');
+        itemsGroup.appendChild(iconNote.parentElement);
+        const noteCtx = iconNote.getContext('2d');
+
+        // 배경
+        noteCtx.fillStyle = '#FFFFFF';
+        noteCtx.fillRect(0, 0, 32, 32);
+
+        // 노트 테두리
+        noteCtx.strokeStyle = '#95A5A6';
+        noteCtx.lineWidth = 1;
+        noteCtx.strokeRect(2, 2, 28, 28);
+
+        // 노트 줄
+        noteCtx.strokeStyle = '#BDC3C7';
+        noteCtx.beginPath();
+        for (let y = 8; y < 32; y += 5) {
+            noteCtx.moveTo(2, y);
+            noteCtx.lineTo(30, y);
+        }
+        noteCtx.stroke();
+
+        // 텍스트 표시
+        noteCtx.fillStyle = '#2C3E50';
+        noteCtx.font = '5px Arial';
+        noteCtx.fillText('MEMO', 8, 6);
+
+        // 아이콘 - 망치 (32x32)
+        const iconHammer = createCanvas('icon_hammer', 32, 32, '/public/assets/images/items/icon_hammer.png');
+        itemsGroup.appendChild(iconHammer.parentElement);
+        const hammerCtx = iconHammer.getContext('2d');
+
+        // 배경
+        hammerCtx.fillStyle = '#7F8C8D';
+        hammerCtx.fillRect(0, 0, 32, 32);
+
+        // 망치 그리기
+        hammerCtx.fillStyle = '#5D6D7E';
+        hammerCtx.fillRect(10, 8, 12, 20);
+
+        hammerCtx.fillStyle = '#95A5A6';
+        hammerCtx.fillRect(8, 4, 16, 6);
+
+        // UI 그룹 생성
+        const uiGroup = document.createElement('div');
+        uiGroup.className = 'asset-group';
+        uiGroup.innerHTML = '<h2>UI 요소</h2>';
+        assetsContainer.appendChild(uiGroup);
+
+        // 로고 (400x100)
+        const logo = createCanvas('logo', 400, 100, '/public/assets/images/ui/logo.png');
+        uiGroup.appendChild(logo.parentElement);
+        const logoCtx = logo.getContext('2d');
+
+        // 로고 배경
+        const logoGradient = logoCtx.createLinearGradient(0, 0, 400, 100);
+        logoGradient.addColorStop(0, '#3498DB');
+        logoGradient.addColorStop(1, '#9B59B6');
+        logoCtx.fillStyle = logoGradient;
+        logoCtx.fillRect(0, 0, 400, 100);
+
+        // 로고 텍스트
+        logoCtx.fillStyle = '#FFFFFF';
+        logoCtx.font = 'bold 48px Arial';
+        logoCtx.textAlign = 'center';
+        logoCtx.textBaseline = 'middle';
+        logoCtx.fillText('어드벤처 게임', 200, 50);
+
+        // 로고 테두리
+        logoCtx.strokeStyle = '#ECF0F1';
+        logoCtx.lineWidth = 5;
+        logoCtx.strokeRect(5, 5, 390, 90);
+
+        // 로딩 바 (300x30)
+        const loadingBar = createCanvas('loading_bar', 300, 30, '/public/assets/images/ui/loading_bar.png');
+        uiGroup.appendChild(loadingBar.parentElement);
+        const loadingBarCtx = loadingBar.getContext('2d');
+
+        // 배경
+        loadingBarCtx.fillStyle = '#3498DB';
+        loadingBarCtx.fillRect(0, 0, 300, 30);
+
+        // 그라데이션
+        const gradient = loadingBarCtx.createLinearGradient(0, 0, 300, 0);
+        gradient.addColorStop(0, '#3498DB');
+        gradient.addColorStop(1, '#2980B9');
+        loadingBarCtx.fillStyle = gradient;
+        loadingBarCtx.fillRect(0, 0, 300, 30);
+
+        // 버튼 - 기본 상태 (200x50)
+        const buttonNormal = createCanvas('button_normal', 200, 50, '/public/assets/images/ui/button_normal.png');
+        uiGroup.appendChild(buttonNormal.parentElement);
+        const buttonNormalCtx = buttonNormal.getContext('2d');
+
+        // 버튼 배경
+        buttonNormalCtx.fillStyle = '#2C3E50';
+        buttonNormalCtx.fillRect(0, 0, 200, 50);
+
+        // 버튼 테두리
+        buttonNormalCtx.strokeStyle = '#95A5A6';
+        buttonNormalCtx.lineWidth = 2;
+        buttonNormalCtx.strokeRect(2, 2, 196, 46);
+
+        // 버튼 텍스트
+        buttonNormalCtx.fillStyle = '#FFFFFF';
+        buttonNormalCtx.font = 'bold 20px Arial';
+        buttonNormalCtx.textAlign = 'center';
+        buttonNormalCtx.textBaseline = 'middle';
+        buttonNormalCtx.fillText('버튼', 100, 25);
+
+        // 버튼 - 호버 상태 (200x50)
+        const buttonHover = createCanvas('button_hover', 200, 50, '/public/assets/images/ui/button_hover.png');
+        uiGroup.appendChild(buttonHover.parentElement);
+        const buttonHoverCtx = buttonHover.getContext('2d');
+
+        // 버튼 배경
+        buttonHoverCtx.fillStyle = '#34495E';
+        buttonHoverCtx.fillRect(0, 0, 200, 50);
+
+        // 버튼 테두리
+        buttonHoverCtx.strokeStyle = '#ECF0F1';
+        buttonHoverCtx.lineWidth = 3;
+        buttonHoverCtx.strokeRect(2, 2, 196, 46);
+
+        // 버튼 텍스트
+        buttonHoverCtx.fillStyle = '#FFFFFF';
+        buttonHoverCtx.font = 'bold 20px Arial';
+        buttonHoverCtx.textAlign = 'center';
+        buttonHoverCtx.textBaseline = 'middle';
+        buttonHoverCtx.fillText('버튼', 100, 25);
+
+        // 파티클 (8x8)
+        const particle = createCanvas('particle', 8, 8, '/public/assets/images/ui/particle.png');
+        uiGroup.appendChild(particle.parentElement);
+        const particleCtx = particle.getContext('2d');
+
+        // 원형 파티클
+        const particleGradient = particleCtx.createRadialGradient(4, 4, 0, 4, 4, 4);
+        particleGradient.addColorStop(0, '#FFFFFF');
+        particleGradient.addColorStop(1, 'rgba(255, 255, 255, 0)');
+
+        particleCtx.fillStyle = particleGradient;
+        particleCtx.fillRect(0, 0, 8, 8);
+
+        // 캐릭터 그룹 생성
+        const charactersGroup = document.createElement('div');
+        charactersGroup.className = 'asset-group';
+        charactersGroup.innerHTML = '<h2>캐릭터</h2>';
+        assetsContainer.appendChild(charactersGroup);
+
+        // 플레이어 (64x64)
+        const player = createCanvas('player', 64, 64, '/public/assets/images/characters/player.png');
+        charactersGroup.appendChild(player.parentElement);
+        const playerCtx = player.getContext('2d');
+
+        // 배경 (투명)
+        playerCtx.clearRect(0, 0, 64, 64);
+
+        // 간단한 캐릭터 그리기
+        playerCtx.fillStyle = '#3498DB';
+
+        // 몸통
+        playerCtx.fillRect(22, 32, 20, 25);
+
+        // 머리
+        playerCtx.fillStyle = '#F1C40F';
+        playerCtx.beginPath();
+        playerCtx.arc(32, 20, 12, 0, Math.PI * 2);
+        playerCtx.fill();
+
+        // 눈
+        playerCtx.fillStyle = '#FFFFFF';
+        playerCtx.beginPath();
+        playerCtx.arc(28, 17, 3, 0, Math.PI * 2);
+        playerCtx.arc(36, 17, 3, 0, Math.PI * 2);
+        playerCtx.fill();
+
+        playerCtx.fillStyle = '#000000';
+        playerCtx.beginPath();
+        playerCtx.arc(28, 17, 1.5, 0, Math.PI * 2);
+        playerCtx.arc(36, 17, 1.5, 0, Math.PI * 2);
+        playerCtx.fill();
+
+        // 다리
+        playerCtx.fillStyle = '#2980B9';
+        playerCtx.fillRect(22, 57, 8, 7);
+        playerCtx.fillRect(34, 57, 8, 7);
+
+        // 플레이어 스프라이트시트 (256x256)
+        const playerSheet = createCanvas('player_spritesheet', 256, 256, '/public/assets/images/characters/player_spritesheet.png');
+        charactersGroup.appendChild(playerSheet.parentElement);
+        const playerSheetCtx = playerSheet.getContext('2d');
+
+        // 배경 (투명)
+        playerSheetCtx.fillStyle = '#E0E0E0';
+        playerSheetCtx.fillRect(0, 0, 256, 256);
+
+        // 스프라이트 프레임 (4x4 그리드)
+        for (let row = 0; row < 4; row++) {
+            for (let col = 0; col < 4; col++) {
+                const x = col * 64;
+                const y = row * 64;
+
+                // 프레임 테두리
+                playerSheetCtx.strokeStyle = '#AAAAAA';
+                playerSheetCtx.lineWidth = 1;
+                playerSheetCtx.strokeRect(x, y, 64, 64);
+
+                // 복제된 플레이어 그리기 (약간의 변형 추가)
+                playerSheetCtx.fillStyle = '#3498DB';
+
+                // 몸통
+                playerSheetCtx.fillRect(x + 22, y + 32, 20, 25);
+
+                // 머리
+                playerSheetCtx.fillStyle = '#F1C40F';
+                playerSheetCtx.beginPath();
+                playerSheetCtx.arc(x + 32, y + 20, 12, 0, Math.PI * 2);
+                playerSheetCtx.fill();
+
+                // 눈
+                playerSheetCtx.fillStyle = '#FFFFFF';
+                playerSheetCtx.beginPath();
+                playerSheetCtx.arc(x + 28, y + 17, 3, 0, Math.PI * 2);
+                playerSheetCtx.arc(x + 36, y + 17, 3, 0, Math.PI * 2);
+                playerSheetCtx.fill();
+
+                playerSheetCtx.fillStyle = '#000000';
+                playerSheetCtx.beginPath();
+
+                // 여러 프레임에 약간의 변형 추가
+                const eyeOffsetX = (col === 1 || col === 3) ? 1 : 0;
+                const eyeOffsetY = (row === 1 || row === 3) ? 1 : 0;
+
+                playerSheetCtx.arc(x + 28 + eyeOffsetX, y + 17 + eyeOffsetY, 1.5, 0, Math.PI * 2);
+                playerSheetCtx.arc(x + 36 + eyeOffsetX, y + 17 + eyeOffsetY, 1.5, 0, Math.PI * 2);
+                playerSheetCtx.fill();
+
+                // 다리 위치 변경으로 걷는 모션 표현
+                playerSheetCtx.fillStyle = '#2980B9';
+
+                // 걷기 애니메이션 표현
+                if ((row + col) % 2 === 0) {
+                    // 첫 번째 포즈
+                    playerSheetCtx.fillRect(x + 22, y + 57, 8, 7);
+                    playerSheetCtx.fillRect(x + 34, y + 57, 8, 7);
+                } else {
+                    // 두 번째 포즈
+                    playerSheetCtx.fillRect(x + 20, y + 57, 8, 7);
+                    playerSheetCtx.fillRect(x + 36, y + 57, 8, 7);
+                }
+
+                // 프레임 번호
+                playerSheetCtx.fillStyle = '#333333';
+                playerSheetCtx.font = '10px Arial';
+                playerSheetCtx.textAlign = 'center';
+                playerSheetCtx.fillText(`${row * 4 + col}`, x + 32, y + 5);
+            }
+        }
+
+        // 저장 정보
+        const saveInfo = document.createElement('div');
+        saveInfo.className = 'instructions';
+        saveInfo.innerHTML = `
+        <h2>에셋 저장 방법</h2>
+        <p>각 이미지를 우클릭하여 '이미지를 다른 이름으로 저장'을 선택하고, 표시된 경로에 저장하세요.</p>
+        <p><strong>필수 에셋 목록:</strong></p>
+        <ul>
+          <li>/public/assets/images/backgrounds/bg_room1.png</li>
+          <li>/public/assets/images/backgrounds/bg_room2.png</li>
+          <li>/public/assets/images/characters/player.png</li>
+          <li>/public/assets/images/characters/player_spritesheet.png</li>
+          <li>/public/assets/images/items/icon_key.png</li>
+          <li>/public/assets/images/items/icon_note.png</li>
+          <li>/public/assets/images/items/icon_hammer.png</li>
+          <li>/public/assets/images/ui/logo.png</li>
+          <li>/public/assets/images/ui/loading_bar.png</li>
+          <li>/public/assets/images/ui/button_normal.png</li>
+          <li>/public/assets/images/ui/button_hover.png</li>
+          <li>/public/assets/images/ui/particle.png</li>
+        </ul>
+
+        <h3>오디오 파일</h3>
+        <p>아래 오디오 파일들은 빈 파일로 생성해도 괜찮습니다:</p>
+        <ul>
+          <li>/public/assets/audio/music/background_music.mp3</li>
+          <li>/public/assets/audio/sfx/click.mp3</li>
+          <li>/public/assets/audio/sfx/item_pickup.mp3</li>
+          <li>/public/assets/audio/sfx/door_open.mp3</li>
+        </ul>
+
+        <button id="downloadButton" style="display: none;">모든 에셋 다운로드</button>
+        <p><i>참고: '모든 에셋 다운로드' 기능은 현재 브라우저에서 지원하지 않을 수 있습니다. 각 이미지를 개별적으로 저장하세요.</i></p>
+      `;
+        assetsContainer.appendChild(saveInfo);
+    }
+
+    // 이벤트 리스너 등록
+    document.getElementById('generateAssets').addEventListener('click', generateAssets);
+</script>
+</body>
+</html>
