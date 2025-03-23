@@ -1,4 +1,4 @@
-import Phaser from 'phaser';
+import * as Phaser from 'phaser';
 import GameManager from '../core/GameManager';
 
 export class BootScene extends Phaser.Scene {

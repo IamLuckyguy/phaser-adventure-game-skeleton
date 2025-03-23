@@ -1,5 +1,5 @@
 // src/game/scenes/CreditsScene.js
-import Phaser from 'phaser';
+import * as Phaser from 'phaser';
 
 export class CreditsScene extends Phaser.Scene {
     constructor() {
