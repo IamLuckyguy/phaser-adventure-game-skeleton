@@ -1,0 +1,34 @@
+{
+  "version": "1.0.0",
+  "images": [
+    { "key": "bg_room1", "path": "/assets/images/backgrounds/bg_room1.png" },
+    { "key": "bg_room2", "path": "/assets/images/backgrounds/bg_room2.png" },
+    { "key": "player_image", "path": "/assets/images/characters/player.png" },
+    { "key": "icon_key", "path": "/assets/images/items/icon_key.png" },
+    { "key": "icon_note", "path": "/assets/images/items/icon_note.png" },
+    { "key": "icon_hammer", "path": "/assets/images/items/icon_hammer.png" },
+    { "key": "logo", "path": "/assets/images/ui/logo.png" },
+    { "key": "loading_bar", "path": "/assets/images/ui/loading_bar.png" },
+    { "key": "button_normal", "path": "/assets/images/ui/button_normal.png" },
+    { "key": "button_hover", "path": "/assets/images/ui/button_hover.png" },
+    { "key": "particle", "path": "/assets/images/ui/particle.png" }
+  ],
+  "audio": [
+    { "key": "bg_music", "path": "/assets/audio/music/background_music.mp3" },
+    { "key": "click_sound", "path": "/assets/audio/sfx/click.mp3" },
+    { "key": "item_pickup", "path": "/assets/audio/sfx/item_pickup.mp3" },
+    { "key": "door_open", "path": "/assets/audio/sfx/door_open.mp3" }
+  ],
+  "spritesheets": [
+    {
+      "key": "player_sprite",
+      "path": "/assets/images/characters/player_spritesheet.png",
+      "frameWidth": 64,
+      "frameHeight": 64
+    }
+  ],
+  "scenes": [
+    { "key": "room1", "path": "/assets/scenes/room1.json" },
+    { "key": "room2", "path": "/assets/scenes/room2.json" }
+  ]
+}
