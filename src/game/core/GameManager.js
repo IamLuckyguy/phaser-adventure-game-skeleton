@@ -1,4 +1,5 @@
 // src/game/core/GameManager.js
+
 import { saveGameData, loadGameData } from '../services/storageService';
 import * as Phaser from 'phaser';
 
@@ -14,56 +15,77 @@ export default class GameManager extends Phaser.Events.EventEmitter {
         this.itemCombinations = {};
         this.gameData = null;
         this.initialized = false;
+        this.initializationPromise = null; // 초기화 Promise 추가
     }
 
     async init(gameDataPath = '/assets/data/game-data.json') {
-        if (this.initialized) return;
-
-        try {
-            // 게임 데이터 로드 (아이템, 조합법 등)
-            const response = await fetch(gameDataPath);
-            if (!response.ok) {
-                throw new Error(`게임 데이터 로드 실패: ${response.status}`);
-            }
-
-            this.gameData = await response.json();
-
-            // 아이템 데이터베이스 설정
-            if (this.gameData.items) {
-                this.itemDatabase = this.gameData.items.reduce((db, item) => {
-                    db[item.id] = item;
-                    return db;
-                }, {});
-            }
-
-            // 아이템 조합 설정
-            if (this.gameData.combinations) {
-                this.itemCombinations = this.gameData.combinations.reduce((combos, combo) => {
-                    const key = this.getCombinationKey(combo.item1, combo.item2);
-                    combos[key] = combo.result;
-                    return combos;
-                }, {});
-            }
-
-            // 저장된 게임 불러오기 시도
-            const savedGame = loadGameData();
-            if (savedGame) {
-                this.loadSavedGame(savedGame);
-            } else {
-                // 새 게임 설정
-                this.resetGameState();
-            }
-
-            this.initialized = true;
-            console.log('게임 매니저 초기화 완료:', this.gameData);
-            this.emit('init-complete', this.gameData);
-        } catch (error) {
-            console.error('게임 매니저 초기화 실패:', error);
-            // 기본 설정으로 대체
-            this.resetGameState();
-            this.initialized = true;
-            this.emit('init-error', error);
+        // 이미 초기화 중이거나 완료되었으면 기존 Promise 반환
+        if (this.initializationPromise) {
+            return this.initializationPromise;
         }
+
+        // 초기화 Promise 생성 및 저장
+        this.initializationPromise = new Promise(async (resolve, reject) => {
+            try {
+                // 게임 데이터 로드 (아이템, 조합법 등)
+                const response = await fetch(gameDataPath);
+                if (!response.ok) {
+                    throw new Error(`게임 데이터 로드 실패: ${response.status}`);
+                }
+
+                this.gameData = await response.json();
+
+                // 아이템 데이터베이스 설정
+                if (this.gameData.items) {
+                    this.itemDatabase = this.gameData.items.reduce((db, item) => {
+                        db[item.id] = item;
+                        return db;
+                    }, {});
+                }
+
+                // 아이템 조합 설정
+                if (this.gameData.combinations) {
+                    this.itemCombinations = this.gameData.combinations.reduce((combos, combo) => {
+                        const key = this.getCombinationKey(combo.item1, combo.item2);
+                        combos[key] = combo.result;
+                        return combos;
+                    }, {});
+                }
+
+                // 저장된 게임 불러오기 시도
+                const savedGame = loadGameData();
+                if (savedGame) {
+                    this.loadSavedGame(savedGame);
+                } else {
+                    // 새 게임 설정
+                    this.resetGameState();
+                }
+
+                this.initialized = true;
+                console.log('게임 매니저 초기화 완료:', this.gameData);
+                this.emit('init-complete', this.gameData);
+                resolve(true);
+            } catch (error) {
+                console.error('게임 매니저 초기화 실패:', error);
+                // 기본 설정으로 대체
+                this.resetGameState();
+                this.initialized = true;
+                this.emit('init-error', error);
+                // 초기화 실패도 Promise를 resolve하고 오류 정보 전달
+                resolve(false);
+            }
+        });
+
+        return this.initializationPromise;
+    }
+
+    // 초기화 여부 확인 헬퍼 메서드
+    ensureInitialized() {
+        if (!this.initialized) {
+            console.warn('GameManager가 아직 초기화되지 않았습니다.');
+            return false;
+        }
+        return true;
     }
 
     resetGameState() {
@@ -95,6 +117,9 @@ export default class GameManager extends Phaser.Events.EventEmitter {
     }
 
     saveGameState() {
+        // 초기화 여부 확인
+        if (!this.ensureInitialized()) return null;
+
         // 현재 게임 상태 저장
         const saveData = {
             currentScene: this.currentScene,
@@ -115,12 +140,18 @@ export default class GameManager extends Phaser.Events.EventEmitter {
     }
 
     setCurrentScene(sceneKey) {
+        // 초기화 여부 확인
+        if (!this.ensureInitialized()) return;
+
         this.currentScene = sceneKey;
         this.visitedScenes.add(sceneKey);
         this.emit('scene-changed', sceneKey);
     }
 
     getSavedState(sceneKey) {
+        // 초기화 여부 확인
+        if (!this.ensureInitialized()) return null;
+
         // 특정 씬에 대한 저장 상태 반환
         if (sceneKey === this.currentScene) {
             return {
@@ -133,6 +164,9 @@ export default class GameManager extends Phaser.Events.EventEmitter {
     }
 
     collectItem(itemId) {
+        // 초기화 여부 확인
+        if (!this.ensureInitialized()) return false;
+
         if (!this.inventory.includes(itemId)) {
             this.inventory.push(itemId);
             console.log(`아이템 획득: ${itemId}`);
@@ -143,6 +177,9 @@ export default class GameManager extends Phaser.Events.EventEmitter {
     }
 
     removeItem(itemId) {
+        // 초기화 여부 확인
+        if (!this.ensureInitialized()) return false;
+
         const index = this.inventory.indexOf(itemId);
         if (index !== -1) {
             this.inventory.splice(index, 1);
@@ -154,23 +191,38 @@ export default class GameManager extends Phaser.Events.EventEmitter {
     }
 
     hasItem(itemId) {
+        // 초기화 여부 확인
+        if (!this.ensureInitialized()) return false;
+
         return this.inventory.includes(itemId);
     }
 
     getInventory() {
+        // 초기화 여부 확인
+        if (!this.ensureInitialized()) return [];
+
         // 인벤토리에 있는 모든 아이템의 데이터 반환
         return this.inventory.map(itemId => this.getItemData(itemId)).filter(Boolean);
     }
 
     getCollectedItems() {
+        // 초기화 여부 확인
+        if (!this.ensureInitialized()) return [];
+
         return [...this.inventory];
     }
 
     getItemData(itemId) {
+        // 초기화 여부 확인
+        if (!this.ensureInitialized()) return null;
+
         return this.itemDatabase[itemId] || null;
     }
 
     combineItems(itemId1, itemId2) {
+        // 초기화 여부 확인
+        if (!this.ensureInitialized()) return null;
+
         const key = this.getCombinationKey(itemId1, itemId2);
         const resultItemId = this.itemCombinations[key];
 
@@ -202,16 +254,25 @@ export default class GameManager extends Phaser.Events.EventEmitter {
     }
 
     setFlag(flagName, value = true) {
+        // 초기화 여부 확인
+        if (!this.ensureInitialized()) return;
+
         const oldValue = this.gameFlags[flagName];
         this.gameFlags[flagName] = value;
         this.emit('flag-changed', { flagName, oldValue, newValue: value });
     }
 
     getFlag(flagName) {
+        // 초기화 여부 확인
+        if (!this.ensureInitialized()) return false;
+
         return this.gameFlags[flagName] || false;
     }
 
     hasVisitedScene(sceneKey) {
+        // 초기화 여부 확인
+        if (!this.ensureInitialized()) return false;
+
         return this.visitedScenes.has(sceneKey);
     }
 }
